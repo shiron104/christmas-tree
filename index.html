@@ -1,203 +1,518 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-  <title>Merry Christmas - 3D Tree</title>
-  <style>
-    html, body {
-      margin: 0; padding: 0; overflow: hidden;
-      height: 100%;
-      background: radial-gradient(circle at 50% 30%, #1a2b1a 0%, #050607 60%, #000 100%);
-      font-family: Georgia, "Times New Roman", serif;
-    }
-    #ui {
-      position: absolute; inset: 0;
-      pointer-events: none;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-    }
-    #title {
-      text-align: center;
-      font-size: clamp(22px, 4vw, 46px);
-      letter-spacing: 0.08em;
-      margin-top: 18px;
-      color: #f7e7a7;
-      text-shadow: 0 0 18px rgba(255, 211, 100, 0.35),
-                   0 0 46px rgba(255, 170, 20, 0.18);
-      user-select: none;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Merry Christmas - 3D Experience</title>
+    <!-- Fonts for Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Three.js & Plugins -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
-    /* Images revealed in the “frame” state */
-    #gallery {
-      pointer-events: none;
-      align-self: center;
-      justify-self: center;
-      width: min(820px, 92vw);
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-      opacity: 0;
-      transform: scale(0.96);
-      transition: opacity 800ms ease, transform 800ms ease;
-      filter: drop-shadow(0 8px 30px rgba(255, 200, 60, 0.15));
-    }
-    #gallery.show {
-      opacity: 1;
-      transform: scale(1);
-    }
-    #gallery img {
-      width: 100%;
-      height: clamp(70px, 12vw, 140px);
-      object-fit: cover;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 220, 140, 0.35);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.35);
-    }
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Cinzel', serif;
+        }
 
-    #hint {
-      text-align: center;
-      color: rgba(255, 240, 200, 0.75);
-      font-size: 13px;
-      margin-bottom: 10px;
-      letter-spacing: 0.03em;
-      text-shadow: 0 0 10px rgba(255, 200, 80, 0.12);
-      user-select: none;
-    }
+        /* Gradient Background - Dark Winter Night */
+        #bg-gradient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #1a2228 0%, #000000 90%);
+            z-index: -1;
+        }
 
-    canvas { display: block; }
-  </style>
+        /* Overlay UI */
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-  <!-- Import map for Three.js modules -->
+        #title-box {
+            margin-top: 5vh;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 3s ease-out forwards;
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 30px rgba(255, 0, 50, 0.4);
+            margin: 0;
+        }
+
+        /* Canvas interaction fix for mobile */
+        canvas {
+            touch-action: none;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+    </style>
 </head>
-
 <body>
-  <div id="ui">
-    <div id="title">MERRY CHRISTMAS</div>
 
-    <!-- ✅ WHERE TO ADD 5 IMAGES:
-         Replace the src URLs below with your own images (local or remote). -->
-    <div id="gallery" aria-hidden="true">
-      <img src="https://images.unsplash.com/photo-1512389098783-66b81f86e199?auto=format&fit=crop&w=900&q=70" alt="img1">
-      <img src="https://images.unsplash.com/photo-1543589077-47d81606c1bf?auto=format&fit=crop&w=900&q=70" alt="img2">
-      <img src="https://images.unsplash.com/photo-1482517967863-00e15c9b44be?auto=format&fit=crop&w=900&q=70" alt="img3">
-      <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=900&q=70" alt="img4">
-      <img src="https://images.unsplash.com/photo-1482517967863-00e15c9b44be?auto=format&fit=crop&w=900&q=70" alt="img5">
+    <div id="bg-gradient"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-container">
+        <div id="title-box">
+            <h1>MERRY CHRISTMAS</h1>
+        </div>
     </div>
 
-    <div id="hint">Tap/click the tree: scatter → frame + reveal → tree. Long-press/drag to move.</div>
-  </div>
+    <!-- Canvas -->
+    <canvas id="webgl"></canvas>
 
-  <!-- ✅ Background music (attempts autoplay; if blocked, starts on first interaction) -->
-  <!-- Replace with your own Christmas music file if you want -->
-  <audio id="bgm" loop playsinline>
-    <source src="https://cdn.pixabay.com/download/audio/2022/11/21/audio_64b6d9e1b0.mp3?filename=christmas-spirit-126829.mp3" type="audio/mpeg">
-  </audio>
+    <!-- Audio -->
+    <audio id="bg-music" loop>
+        <source src="https://upload.wikimedia.org/wikipedia/commons/6/6c/Jingle_Bells_Kevin_MacLeod_-_No_Copyright_Music.mp3" type="audio/mpeg">
+    </audio>
 
-  <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-    import { RoomEnvironment } from "https://unpkg.com/three@0.160.0/examples/jsm/environments/RoomEnvironment.js";
-    import { EffectComposer } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js";
-    import { RenderPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/RenderPass.js";
-    import { UnrealBloomPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js";
+    <script>
+        // --- CONFIGURATION & IMAGE SOURCES ---
+        const IMAGE_SOURCES = [
+            'https://picsum.photos/id/102/600/800', 
+            'https://picsum.photos/id/106/600/800', 
+            'https://picsum.photos/id/111/600/800', 
+            'https://picsum.photos/id/164/600/800', 
+            'https://picsum.photos/id/225/600/800'  
+        ];
 
+        // --- THREE.JS SETUP ---
+        const canvas = document.querySelector('#webgl');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.02);
 
-    // ---------- Core ----------
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x030406, 0.06);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 18);
 
-    const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
-    camera.position.set(0, 5.2, 16);
+        const renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance"
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
-    renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
-    document.body.appendChild(renderer.domElement);
+        // --- LIGHTING (Balanced Christmas Theme) ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Neutral ambient
+        scene.add(ambientLight);
 
-    // Nice reflections without external HDR: RoomEnvironment → PMREM
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    const envTex = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
-    scene.environment = envTex;
+        // Main SpotLight - White/Warm White instead of Gold to prevent yellow tint
+        const spotLight = new THREE.SpotLight(0xfff5e6, 12);
+        spotLight.position.set(10, 20, 10);
+        spotLight.angle = Math.PI / 4;
+        spotLight.penumbra = 0.5;
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 1024;
+        spotLight.shadow.mapSize.height = 1024;
+        scene.add(spotLight);
 
-    // ---------- Post (subtle golden glow) ----------
-    const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(
-      new THREE.Vector2(innerWidth, innerHeight),
-      0.55,  // strength
-      0.9,   // radius
-      0.25   // threshold
-    );
-    composer.addPass(bloom);
+        // Accent Lights - Red & Cool Blue/White
+        const redLight = new THREE.PointLight(0xff0044, 6, 20);
+        redLight.position.set(-5, 5, 5);
+        scene.add(redLight);
 
-    // ---------- Lights ----------
-    const key = new THREE.DirectionalLight(0xfff1c8, 1.25);
-    key.position.set(6, 10, 8);
-    scene.add(key);
+        const iceLight = new THREE.PointLight(0xddeeff, 6, 20);
+        iceLight.position.set(5, -5, 5);
+        scene.add(iceLight);
 
-    const fill = new THREE.DirectionalLight(0xffd29b, 0.65);
-    fill.position.set(-8, 5, 2);
-    scene.add(fill);
+        // --- CONTROLS ---
+        const controls = new THREE.OrbitControls(camera, canvas);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enablePan = false;
+        controls.minDistance = 5;
+        controls.maxDistance = 30;
+        controls.maxPolarAngle = Math.PI / 1.5;
 
-    const rim = new THREE.PointLight(0xffb34a, 55, 50);
-    rim.position.set(0, 7, -12);
-    scene.add(rim);
+        // --- MATERIALS (Christmas Palette: Red, Green, Gold, Silver) ---
+        
+        // Use a single base material for instanced mesh, using color attribute for variation.
+        // We set high metalness/low roughness for that shiny ornament look.
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff, 
+            roughness: 0.15,
+            metalness: 0.9,
+            envMapIntensity: 1.0
+        });
 
-    const baseGlow = new THREE.PointLight(0xffcc70, 35, 25);
-    baseGlow.position.set(0, 1, 6);
-    scene.add(baseGlow);
+        const sphereGeo = new THREE.SphereGeometry(0.15, 12, 12); 
+        const cubeGeo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+        const octaGeo = new THREE.OctahedronGeometry(0.6);
 
-    // ---------- Group container (for moving/rotating whole tree) ----------
-    const treeGroup = new THREE.Group();
-    scene.add(treeGroup);
+        // --- INSTANCED MESH DATA ---
+        
+        const COUNT = 1200; 
+        const SPHERE_COUNT = Math.floor(COUNT * 0.6);
+        const CUBE_COUNT = COUNT - SPHERE_COUNT;
 
-    // ---------- Materials (PBR metallic) ----------
-    const matGold = new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#d6b24a"),
-      metalness: 1.0,
-      roughness: 0.18,
-      envMapIntensity: 1.2
-    });
+        const iMeshSpheres = new THREE.InstancedMesh(sphereGeo, baseMaterial, SPHERE_COUNT);
+        const iMeshCubes = new THREE.InstancedMesh(cubeGeo, baseMaterial, CUBE_COUNT);
+        
+        iMeshSpheres.castShadow = true;
+        iMeshSpheres.receiveShadow = true;
+        iMeshCubes.castShadow = true;
+        iMeshCubes.receiveShadow = true;
 
-    const matRed = new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#b3161f"),
-      metalness: 0.92,
-      roughness: 0.22,
-      envMapIntensity: 1.05
-    });
+        const treeGroup = new THREE.Group();
+        treeGroup.add(iMeshSpheres);
+        treeGroup.add(iMeshCubes);
+        scene.add(treeGroup);
 
-    const matGreen = new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#0e4b2c"),
-      metalness: 0.88,
-      roughness: 0.26,
-      envMapIntensity: 1.0
-    });
+        // --- IMAGE PLANE ---
+        const textureLoader = new THREE.TextureLoader();
+        const imageGeo = new THREE.PlaneGeometry(3.5, 4.5);
+        const imageMat = new THREE.MeshBasicMaterial({ 
+            color: 0xffffff, 
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0
+        });
+        const imageMesh = new THREE.Mesh(imageGeo, imageMat);
+        imageMesh.visible = false;
+        treeGroup.add(imageMesh);
 
-    // Slight “golden glow” feel via emissive (subtle, not particles)
-    matGold.emissive = new THREE.Color("#3a2a00");
-    matGold.emissiveIntensity = 0.25;
+        // -- Star Topper --
+        const topperMat = new THREE.MeshStandardMaterial({
+            color: 0xffd700,
+            emissive: 0xffd700,
+            emissiveIntensity: 0.8,
+            metalness: 0.8,
+            roughness: 0.1
+        });
+        const topper = new THREE.Mesh(octaGeo, topperMat);
+        topper.position.y = 4.5;
+        treeGroup.add(topper);
 
-    // ---------- Instanced geometry counts ----------
-    const SPHERE_COUNT = 900;
-    const CUBE_COUNT   = 520;
+        // --- POSITIONS & COLOR GENERATION ---
 
-    const sphereGeo = new THREE.SphereGeometry(0.16, 16, 16);
-    const cubeGeo   = new THREE.BoxGeometry(0.26, 0.26, 0.26);
+        const sphereData = [];
+        const cubeData = [];
+        const dummy = new THREE.Object3D();
+        const _color = new THREE.Color();
 
-    // Two instanced meshes for spheres: gold + red distribution
-    const spheresGold = new THREE.InstancedMesh(sphereGeo, matGold, Math.floor(SPHERE_COUNT * 0.7));
-    const spheresRed  = new THREE.InstancedMesh(sphereGeo, matRed,  SPHERE_COUNT - spheresGold.count);
+        // Balanced Christmas Palette
+        const PALETTE = [
+            0xdc143c, // Crimson Red
+            0xdc143c, // Crimson Red (Double weight)
+            0x228b22, // Forest Green
+            0x228b22, // Forest Green (Double weight)
+            0xffd700, // Gold
+            0xe0e0e0, // Silver/White (Snow)
+            0xffffff  // Pure White
+        ];
 
-    // Two instanced meshes for cubes: gold + green distribution
-    const cubesGold = new THREE.InstancedMesh(cubeGeo, matGold, Math.floor(CUBE_COUNT * 0.55));
-    const cubesGreen = new THREE.InstancedMesh(cubeGeo, matGreen, CUBE_COUNT - cubesGold.count);
+        function getRandomColor() {
+            return PALETTE[Math.floor(Math.random() * PALETTE.length)];
+        }
 
-    for (const m of [spheresGold, spheresRed, cubesGold, cubesGreen]) {
-      m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      m.castShadow = false;
-      m.receiveShadow = false;
-      treeGroup.add(m);
-    }
+        function generateTreePos(i, total) {
+            const angle = i * 0.5 + Math.random() * 0.5;
+            const h = (i / total) * 9 - 4.5;
+            const hNorm = (h + 4.5) / 9; 
+            const radius = (1 - hNorm) * 3.5 + 0.2;
+            const r = radius * Math.sqrt(Math.random()); 
+            return { x: r * Math.cos(angle * 10), y: h, z: r * Math.sin(angle * 10) };
+        }
+
+        function generateExplodePos() {
+            const u = Math.random();
+            const v = Math.random();
+            const theta = 2 * Math.PI * u;
+            const phi = Math.acos(2 * v - 1);
+            const r = 9 + Math.random() * 8; 
+            return { x: r * Math.sin(phi) * Math.cos(theta), y: r * Math.sin(phi) * Math.sin(theta), z: r * Math.cos(phi) };
+        }
+
+        function generateBorderPos(i, total) {
+            // Rectangle 4x5 units
+            const perimeter = (4 + 5) * 2;
+            const pos = (i / total) * perimeter;
+            let x, y, z = 0;
+            
+            if (pos < 4) { x = pos - 2; y = -2.5; } 
+            else if (pos < 9) { x = 2; y = (pos - 4) - 2.5; } 
+            else if (pos < 13) { x = 2 - (pos - 9); y = 2.5; } 
+            else { x = -2; y = 2.5 - (pos - 13); }
+            
+            z = (Math.random() - 0.5) * 0.5;
+            return { x, y, z };
+        }
+
+        function initData(count, mesh, dataArray) {
+            for (let i = 0; i < count; i++) {
+                // Color
+                _color.setHex(getRandomColor());
+                mesh.setColorAt(i, _color);
+
+                const treePos = generateTreePos(i, count);
+                const explodePos = generateExplodePos();
+                const borderPos = generateBorderPos(i, count);
+
+                const rot = { x: Math.random()*Math.PI, y: Math.random()*Math.PI, z: Math.random()*Math.PI };
+
+                dataArray.push({
+                    curr: { x: treePos.x, y: treePos.y, z: treePos.z, rx: rot.x, ry: rot.y, rz: rot.z },
+                    tree: { x: treePos.x, y: treePos.y, z: treePos.z },
+                    explode: { x: explodePos.x, y: explodePos.y, z: explodePos.z },
+                    border: { x: borderPos.x, y: borderPos.y, z: borderPos.z },
+                    rot: rot
+                });
+
+                dummy.position.set(treePos.x, treePos.y, treePos.z);
+                dummy.rotation.set(rot.x, rot.y, rot.z);
+                dummy.scale.set(1,1,1);
+                dummy.updateMatrix();
+                mesh.setMatrixAt(i, dummy.matrix);
+            }
+            mesh.instanceMatrix.needsUpdate = true;
+        }
+
+        initData(SPHERE_COUNT, iMeshSpheres, sphereData);
+        initData(CUBE_COUNT, iMeshCubes, cubeData);
+
+        // --- INTERACTION LOGIC ---
+
+        let currentState = 0; // 0=Tree, 1=Exploded, 2=Gallery
+        let isAnimating = false;
+        let currentImageIndex = 0;
+
+        let downTime = 0;
+        let startX = 0, startY = 0;
+
+        window.addEventListener('pointerdown', (e) => {
+            downTime = Date.now();
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            const timeDiff = Date.now() - downTime;
+            const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+            
+            const music = document.getElementById('bg-music');
+            if (music.paused) music.play().catch(() => {});
+
+            if (timeDiff < 300 && dist < 15) {
+                handleClick();
+            }
+        });
+
+        function handleClick() {
+            if (isAnimating) return;
+
+            if (currentState === 0) {
+                // Tree -> Explode
+                animateToState(1, 0, 1.5, "power2.out");
+                currentState = 1;
+            } else if (currentState === 1) {
+                // Explode -> Gallery
+                animateToState(2, 1, 1.5, "elastic.out(1, 0.5)");
+                showGallery3D(true);
+                currentState = 2;
+            } else if (currentState === 2) {
+                // Gallery -> Explode (Scatter) -> Tree (Rebuild)
+                
+                // 1. Hide Gallery
+                showGallery3D(false);
+                isAnimating = true;
+
+                // 2. Animate: Gallery(2) -> Explode(1)
+                const progressObj = { val: 0 };
+                
+                gsap.to(progressObj, {
+                    val: 1,
+                    duration: 0.8, // Fast scatter
+                    ease: "power2.inOut",
+                    onUpdate: () => {
+                        updateParticlesInterpolated(progressObj.val, 2, 1);
+                    },
+                    onComplete: () => {
+                        // 3. Animate: Explode(1) -> Tree(0)
+                        progressObj.val = 0;
+                        gsap.to(progressObj, {
+                            val: 1,
+                            duration: 2.5, // Slow, magical rebuild
+                            ease: "elastic.out(1, 0.4)",
+                            onUpdate: () => {
+                                updateParticlesInterpolated(progressObj.val, 1, 0);
+                            },
+                            onComplete: () => {
+                                syncCurrentPositions(0);
+                                isAnimating = false;
+                                currentState = 0;
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        function showGallery3D(show) {
+            if (show) {
+                const url = IMAGE_SOURCES[currentImageIndex];
+                currentImageIndex = (currentImageIndex + 1) % IMAGE_SOURCES.length;
+                
+                imageMesh.visible = true;
+                
+                textureLoader.load(url, (texture) => {
+                    imageMesh.material.map = texture;
+                    imageMesh.material.needsUpdate = true;
+                    gsap.to(imageMesh.material, { opacity: 1, duration: 1 });
+                });
+            } else {
+                gsap.to(imageMesh.material, { 
+                    opacity: 0, 
+                    duration: 0.5, 
+                    onComplete: () => { imageMesh.visible = false; } 
+                });
+            }
+        }
+
+        function animateToState(targetStateIdx, fromStateIdxOverride = null, duration = 2.0, ease = "power2.out") {
+            isAnimating = true;
+            const progressObj = { val: 0 };
+            const fromState = fromStateIdxOverride !== null ? fromStateIdxOverride : currentState;
+
+            gsap.to(progressObj, {
+                val: 1,
+                duration: duration,
+                ease: ease,
+                onUpdate: () => { 
+                    updateParticlesInterpolated(progressObj.val, fromState, targetStateIdx); 
+                },
+                onComplete: () => {
+                    isAnimating = false;
+                    syncCurrentPositions(targetStateIdx);
+                }
+            });
+        }
+
+        function getPosForState(d, stateIdx) {
+            if (stateIdx === 0) return d.tree;
+            if (stateIdx === 1) return d.explode;
+            if (stateIdx === 2) return d.border;
+            return d.tree;
+        }
+
+        function updateParticlesInterpolated(t, fromStateIdx, toStateIdx) {
+            // Common function for Spheres and Cubes
+            const updateMesh = (count, mesh, data, scaleMult = 1) => {
+                for (let i = 0; i < count; i++) {
+                    const d = data[i];
+                    const fromPos = getPosForState(d, fromStateIdx);
+                    const toPos = getPosForState(d, toStateIdx);
+                    
+                    dummy.position.set(
+                        fromPos.x + (toPos.x - fromPos.x) * t,
+                        fromPos.y + (toPos.y - fromPos.y) * t,
+                        fromPos.z + (toPos.z - fromPos.z) * t
+                    );
+                    
+                    // Spin during movement
+                    dummy.rotation.set(
+                        d.rot.x + t * (toStateIdx === 1 ? 2 : 1), 
+                        d.rot.y + t * (toStateIdx === 1 ? 2 : 1), 
+                        d.rot.z
+                    );
+                    
+                    // Scale logic
+                    const fromS = fromStateIdx === 2 ? 1.5 : 1;
+                    const toS = toStateIdx === 2 ? 1.5 : 1;
+                    const s = (fromS + (toS - fromS) * t) * scaleMult;
+                    
+                    dummy.scale.set(s, s, s);
+                    dummy.updateMatrix();
+                    mesh.setMatrixAt(i, dummy.matrix);
+                }
+                mesh.instanceMatrix.needsUpdate = true;
+            };
+
+            updateMesh(SPHERE_COUNT, iMeshSpheres, sphereData, 1.0);
+            updateMesh(CUBE_COUNT, iMeshCubes, cubeData, 1.0);
+        }
+
+        function syncCurrentPositions(stateIdx) {
+            // Since we compute positions on the fly using getPosForState in the interpolation,
+            // we don't strictly need to update d.curr here for logic reasons,
+            // but we do it to keep data consistent if we ever switch back to non-interpolated logic.
+            const updateData = (arr) => {
+                arr.forEach(d => {
+                    const t = getPosForState(d, stateIdx);
+                    d.curr.x = t.x; d.curr.y = t.y; d.curr.z = t.z;
+                });
+            };
+            updateData(sphereData);
+            updateData(cubeData);
+        }
+
+        // --- ANIMATION LOOP ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = clock.getElapsedTime();
+            
+            // Rotation Logic
+            if (!isAnimating) {
+                if (currentState === 0) {
+                    treeGroup.rotation.y = time * 0.1;
+                    topper.rotation.y = -time * 0.5;
+                } else if (currentState === 1) {
+                    treeGroup.rotation.y += 0.002;
+                } else if (currentState === 2) {
+                    treeGroup.rotation.y += 0.005; 
+                }
+            }
+
+            // Topper Bobbing
+            topper.position.y = 4.5 + Math.sin(time * 2) * 0.1;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
