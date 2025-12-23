@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Merry Christmas - 3D Tree</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; overflow: hidden;
+      height: 100%;
+      background: radial-gradient(circle at 50% 30%, #1a2b1a 0%, #050607 60%, #000 100%);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    #ui {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+    #title {
+      text-align: center;
+      font-size: clamp(22px, 4vw, 46px);
+      letter-spacing: 0.08em;
+      margin-top: 18px;
+      color: #f7e7a7;
+      text-shadow: 0 0 18px rgba(255, 211, 100, 0.35),
+                   0 0 46px rgba(255, 170, 20, 0.18);
+      user-select: none;
+    }
+
+    /* Images revealed in the “frame” state */
+    #gallery {
+      pointer-events: none;
+      align-self: center;
+      justify-self: center;
+      width: min(820px, 92vw);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      opacity: 0;
+      transform: scale(0.96);
+      transition: opacity 800ms ease, transform 800ms ease;
+      filter: drop-shadow(0 8px 30px rgba(255, 200, 60, 0.15));
+    }
+    #gallery.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+    #gallery img {
+      width: 100%;
+      height: clamp(70px, 12vw, 140px);
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 220, 140, 0.35);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    }
+
+    #hint {
+      text-align: center;
+      color: rgba(255, 240, 200, 0.75);
+      font-size: 13px;
+      margin-bottom: 10px;
+      letter-spacing: 0.03em;
+      text-shadow: 0 0 10px rgba(255, 200, 80, 0.12);
+      user-select: none;
+    }
+
+    canvas { display: block; }
+  </style>
+
+  <!-- Import map for Three.js modules -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+
+<body>
+  <div id="ui">
+    <div id="title">MERRY CHRISTMAS</div>
+
+    <!-- ✅ WHERE TO ADD 5 IMAGES:
+         Replace the src URLs below with your own images (local or remote). -->
+    <div id="gallery" aria-hidden="true">
+      <img src="https://images.unsplash.com/photo-1512389098783-66b81f86e199?auto=format&fit=crop&w=900&q=70" alt="img1">
+      <img src="https://images.unsplash.com/photo-1543589077-47d81606c1bf?auto=format&fit=crop&w=900&q=70" alt="img2">
+      <img src="https://images.unsplash.com/photo-1482517967863-00e15c9b44be?auto=format&fit=crop&w=900&q=70" alt="img3">
+      <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=900&q=70" alt="img4">
+      <img src="https://images.unsplash.com/photo-1482517967863-00e15c9b44be?auto=format&fit=crop&w=900&q=70" alt="img5">
+    </div>
+
+    <div id="hint">Tap/click the tree: scatter → frame + reveal → tree. Long-press/drag to move.</div>
+  </div>
+
+  <!-- ✅ Background music (attempts autoplay; if blocked, starts on first interaction) -->
+  <!-- Replace with your own Christmas music file if you want -->
+  <audio id="bgm" loop playsinline>
+    <source src="https://cdn.pixabay.com/download/audio/2022/11/21/audio_64b6d9e1b0.mp3?filename=christmas-spirit-126829.mp3" type="audio/mpeg">
+  </audio>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+    import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+    import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+    import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+
+    // ---------- Core ----------
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x030406, 0.06);
+
+    const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
+    camera.position.set(0, 5.2, 16);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    document.body.appendChild(renderer.domElement);
+
+    // Nice reflections without external HDR: RoomEnvironment → PMREM
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const envTex = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+    scene.environment = envTex;
+
+    // ---------- Post (subtle golden glow) ----------
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(
+      new THREE.Vector2(innerWidth, innerHeight),
+      0.55,  // strength
+      0.9,   // radius
+      0.25   // threshold
+    );
+    composer.addPass(bloom);
+
+    // ---------- Lights ----------
+    const key = new THREE.DirectionalLight(0xfff1c8, 1.25);
+    key.position.set(6, 10, 8);
+    scene.add(key);
+
+    const fill = new THREE.DirectionalLight(0xffd29b, 0.65);
+    fill.position.set(-8, 5, 2);
+    scene.add(fill);
+
+    const rim = new THREE.PointLight(0xffb34a, 55, 50);
+    rim.position.set(0, 7, -12);
+    scene.add(rim);
+
+    const baseGlow = new THREE.PointLight(0xffcc70, 35, 25);
+    baseGlow.position.set(0, 1, 6);
+    scene.add(baseGlow);
+
+    // ---------- Group container (for moving/rotating whole tree) ----------
+    const treeGroup = new THREE.Group();
+    scene.add(treeGroup);
+
+    // ---------- Materials (PBR metallic) ----------
+    const matGold = new THREE.MeshStandardMaterial({
+      color: new THREE.Color("#d6b24a"),
+      metalness: 1.0,
+      roughness: 0.18,
+      envMapIntensity: 1.2
+    });
+
+    const matRed = new THREE.MeshStandardMaterial({
+      color: new THREE.Color("#b3161f"),
+      metalness: 0.92,
+      roughness: 0.22,
+      envMapIntensity: 1.05
+    });
+
+    const matGreen = new THREE.MeshStandardMaterial({
+      color: new THREE.Color("#0e4b2c"),
+      metalness: 0.88,
+      roughness: 0.26,
+      envMapIntensity: 1.0
+    });
+
+    // Slight “golden glow” feel via emissive (subtle, not particles)
+    matGold.emissive = new THREE.Color("#3a2a00");
+    matGold.emissiveIntensity = 0.25;
+
+    // ---------- Instanced geometry counts ----------
+    const SPHERE_COUNT = 900;
+    const CUBE_COUNT   = 520;
+
+    const sphereGeo = new THREE.SphereGeometry(0.16, 16, 16);
+    const cubeGeo   = new THREE.BoxGeometry(0.26, 0.26, 0.26);
+
+    // Two instanced meshes for spheres: gold + red distribution
+    const spheresGold = new THREE.InstancedMesh(sphereGeo, matGold, Math.floor(SPHERE_COUNT * 0.7));
+    const spheresRed  = new THREE.InstancedMesh(sphereGeo, matRed,  SPHERE_COUNT - spheresGold.count);
+
+    // Two instanced meshes for cubes: gold + green distribution
+    const cubesGold = new THREE.InstancedMesh(cubeGeo, matGold, Math.floor(CUBE_COUNT * 0.55));
+    const cubesGreen = new THREE.InstancedMesh(cubeGeo, matGreen, CUBE_COUNT - cubesGold.count);
+
+    for (const m of [spheresGold, spheresRed, cubesGold, cubesGreen]) {
+      m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      m.castShadow = false;
+      m.receiveShadow = false;
+      treeGroup.add(m);
+    }
